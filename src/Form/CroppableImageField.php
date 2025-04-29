@@ -88,7 +88,7 @@ class CroppableImageField extends FormField
         $fields = $image->getCMSFields();
 
         $title = $image ? _t('CroppableImageable.EDITIMAGE', 'Edit Image') : _t('CroppableImageable.ADDIMAGE', 'Add Image');
-        $fields->insertBefore(HeaderField::create('CroppableImageHeader', $title), _t('CroppableImageable.TITLE', 'Title'));
+        $fields->insertBefore(_t('CroppableImageable.TITLE', 'Title'), HeaderField::create('CroppableImageHeader', $title));
         $actions = FieldList::create($action);
         $form = Form::create($this, 'CroppableImageForm', $fields, $actions);
 
