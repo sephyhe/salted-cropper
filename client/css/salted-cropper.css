@@ -1,0 +1,10 @@
+.salted-cropper {
+    margin: 12px 0 12px 0;
+    max-width: 698px !important;
+}
+
+/* this hack to make the assets browser's search function to work.... */
+#AssetSearchForm {
+    position: relative;
+    z-index: 999999999;
+}

@@ -1,5 +1,18 @@
 <?php
-use SaltedHerring\Debugger;
+
+namespace SaltedHerring\Salted\Cropper\Fields;
+
+use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\FormField;
+use SilverStripe\View\Requirements;
+use SilverStripe\Forms\FormAction;
+use SaltedHerring\Salted\Cropper\SaltedCroppableImage;
+use SilverStripe\Forms\HeaderField;
+use SilverStripe\Forms\Form;
+use SilverStripe\Forms\HiddenField;
+use SilverStripe\ORM\ValidationException;
+use SilverStripe\Control\Controller;
+
 /**
  * CroppableImageField
  *
@@ -7,6 +20,7 @@ use SaltedHerring\Debugger;
  * @license BSD License http://www.silverstripe.org/bsd-license
  * @author <shea@silverstripe.com.au>
  **/
+
 class CroppableImageField extends FormField
 {
     /**
@@ -27,12 +41,12 @@ class CroppableImageField extends FormField
      **/
     protected $allowed_types = null;
 
-    public static $allowed_actions = array(
+    private static $allowed_actions = [
         'CroppableImageForm',
         'CroppableImageFormHTML',
         'doSaveCroppableImage',
         'doRemoveCroppableImage'
-    );
+    ];
 
     public function setCropperRatio($ratio)
     {
@@ -40,11 +54,11 @@ class CroppableImageField extends FormField
         return $this;
     }
 
-    public function Field($properties = array())
+    public function Field($properties = [])
     {
-        Requirements::css(SALTEDCROPPER_PATH . '/css/salted-croppable.css');
-        Requirements::css(SALTEDCROPPER_PATH . '/css/salted-cropper.css');
-        Requirements::javascript(SALTEDCROPPER_PATH . '/js/salted-croppable-field.js');
+        Requirements::css('salted-herring/salted-cropper: client/css/salted-croppable.css');
+        Requirements::css('salted-herring/salted-cropper: client/css/salted-cropper.css');
+        Requirements::javascript('salted-herring/salted-cropper: client/js/salted-croppable-field.js');
 
         return parent::Field();
     }
@@ -58,17 +72,17 @@ class CroppableImageField extends FormField
     {
         $image = $this->getCroppableImageObject();
 
-        $action = FormAction::create('doSaveCroppableImage', _t('CroppableImageable.SAVE', 'Save'))->setUseButtonTag('true');
+        $action = FormAction::create('doSaveCroppableImage', _t('CroppableImageable.SAVE', 'Save'))->setUseButtonTag('true')->addExtraClass('btn-primary font-icon-save');
 
         if (!$this->isFrontend) {
-            $action->addExtraClass('ss-ui-action-constructive')->setAttribute('data-icon', 'accept');
+            $action->addExtraClass('btn-primary font-icon-save')->setAttribute('data-icon', 'accept');
         }
 
         $image = null;
         if ($CroppableImageID = (int) $this->request->getVar('SaltedCroppableImageID')) {
             $image = SaltedCroppableImage::get()->byID($CroppableImageID);
         }
-        $image = $image ? $image : singleton('SaltedCroppableImage');
+        $image = $image ? $image : singleton('SaltedHerring\Salted\Cropper\SaltedCroppableImage');
 
         // $image->setAllowedTypes($this->getAllowedTypes());
         $fields = $image->getCMSFields();
@@ -142,7 +156,7 @@ class CroppableImageField extends FormField
     /**
      * Returns the current link object
      *
-     * @return CroppableImage
+     * @return SaltedCroppableImage
      **/
     public function getCroppableImageObject()
     {

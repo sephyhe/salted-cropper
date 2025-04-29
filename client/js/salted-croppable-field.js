@@ -12,7 +12,7 @@ jQuery.entwine("saltedcroppable", function($) {
                 formUrl = form.attr('action'),
                 formUrlParts = formUrl.split('?'),
                 formUrl = formUrlParts[0],
-                url = encodeURI(formUrl) + '/field/' + this.attr('name') + '/CroppableImageFormHTML';
+                url = encodeURI(formUrl) + 'field/' + this.attr('name') + '/CroppableImageFormHTML';
 
             if (self.val().length){
                 url = url + '?SaltedCroppableImageID=' + self.val();
@@ -115,17 +115,9 @@ jQuery.entwine("saltedcroppable", function($) {
         }
     });
 
-    // $('#Form_CroppableImageForm_Original_Holder .ss-uploadfield-item-delete').entwine(
-    // {
-    //     onmatch :   function()
-    //                 {
-    //                     // this.remove();
-    //                 }
-    // });
-
     $(".croppable-image-field-button").entwine({
         onclick: function() {
-            this.parents('.middleColumn').find('input.croppableimage').showDialog();
+            this.siblings('input.croppableimage').showDialog();
             return false;
         },
     });
@@ -140,7 +132,7 @@ jQuery.entwine("saltedcroppable", function($) {
                 var formUrl = form.attr('action'),
                     formUrlParts = formUrl.split('?'),
                     formUrl = formUrlParts[0],
-                    url = encodeURI(formUrl) + '/field/' + this.parents('.middleColumn:first').find('input:first').prop('name') + '/doRemoveCroppableImage?id=' + id;
+                    url = encodeURI(formUrl) + 'field/' + this.parents('.form__field-holder:first').find('input:first').prop('name') + '/doRemoveCroppableImage?id=' + id;
 
                 if(typeof formUrlParts[1] !== 'undefined') {
                     url = url + '&' + formUrlParts[1];
@@ -153,6 +145,17 @@ jQuery.entwine("saltedcroppable", function($) {
             }
 
             return false;
-        },
+        }
+    });
+
+    $('.salted-croppable-dialog .uploadfield__upload-button').entwine(
+    {
+        onmatch :   function(e)
+                    {
+                        var muppet  =   $(this).parents('.form__field-holder:eq(0)').find('input.entwine-uploadfield'),
+                            real    =   $('.dz-input-' + muppet.data('schema').name);
+
+                        real.insertAfter(muppet);
+                    }
     });
 });
