@@ -177,7 +177,7 @@ class SaltedCroppableImage extends DataObject
     public function onAfterWrite()
     {
         parent::onAfterWrite();
-        $this->Original()->publish('Stage', 'Live');
+        $this->Original()->publishSingle();
     }
 
     public function forTemplate()
