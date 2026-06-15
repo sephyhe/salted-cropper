@@ -30,7 +30,7 @@ class CroppableImageField extends FormField
     protected $folderName = false;
 
     /**
-     * @var CroppableImage
+     * @var SaltedCroppableImage
      **/
     protected $linkObject;
 
@@ -50,7 +50,7 @@ class CroppableImageField extends FormField
 
     public function setCropperRatio($ratio)
     {
-        $this->Ratio        =   $ratio;
+        $this->Ratio = $ratio;
         return $this;
     }
 
@@ -70,47 +70,51 @@ class CroppableImageField extends FormField
      **/
     public function CroppableImageForm()
     {
-        $image = $this->getCroppableImageObject();
-
-        $action = FormAction::create('doSaveCroppableImage', _t('CroppableImageable.SAVE', 'Save'))->setUseButtonTag('true')->addExtraClass('btn-primary font-icon-save');
+        $action = FormAction::create('doSaveCroppableImage', _t('CroppableImageable.SAVE', 'Save'))
+            ->setUseButtonTag(true)
+            ->addExtraClass('btn-primary font-icon-save');
 
         if (!$this->isFrontend) {
             $action->addExtraClass('btn-primary font-icon-save')->setAttribute('data-icon', 'accept');
         }
 
         $image = null;
-        if ($CroppableImageID = (int) $this->request->getVar('SaltedCroppableImageID')) {
-            $image = SaltedCroppableImage::get()->byID($CroppableImageID);
+        if ($croppableImageID = (int) $this->getRequest()->getVar('SaltedCroppableImageID')) {
+            $image = SaltedCroppableImage::get()->byID($croppableImageID);
         }
-        $image = $image ? $image : singleton('SaltedHerring\Salted\Cropper\SaltedCroppableImage');
+        $image = $image ?: SaltedCroppableImage::singleton();
 
-        // $image->setAllowedTypes($this->getAllowedTypes());
         $fields = $image->getCMSFields();
 
-        $title = $image ? _t('CroppableImageable.EDITIMAGE', 'Edit Image') : _t('CroppableImageable.ADDIMAGE', 'Add Image');
-        $fields->insertBefore(_t('CroppableImageable.TITLE', 'Title'), HeaderField::create('CroppableImageHeader', $title));
+        $title = $image->exists()
+            ? _t('CroppableImageable.EDITIMAGE', 'Edit Image')
+            : _t('CroppableImageable.ADDIMAGE', 'Add Image');
+        $fields->insertBefore('Original', HeaderField::create('CroppableImageHeader', $title));
         $actions = FieldList::create($action);
         $form = Form::create($this, 'CroppableImageForm', $fields, $actions);
 
-        if ($image) {
+        if ($image->exists()) {
             $form->loadDataFrom($image);
-            if (!empty($this->folderName)) {
-                $fields->fieldByName('Root.Main.Original')->setFolderName($this->folderName);
-            }
-
-            $fields->push(HiddenField::create('CropperRatio')->setValue($this->Ratio));
-            $fields->push(HiddenField::create('ContainerX')->setValue($image->ContainerX));
-            $fields->push(HiddenField::create('ContainerX')->setValue($image->ContainerX));
-            $fields->push(HiddenField::create('ContainerY')->setValue($image->ContainerY));
-            $fields->push(HiddenField::create('ContainerWidth')->setValue($image->ContainerWidth));
-            $fields->push(HiddenField::create('ContainerHeight')->setValue($image->ContainerHeight));
-            $fields->push(HiddenField::create('CropperX')->setValue($image->CropperX));
-            $fields->push(HiddenField::create('CropperY')->setValue($image->CropperY));
-            $fields->push(HiddenField::create('CropperWidth')->setValue($image->CropperWidth));
-            $fields->push(HiddenField::create('CropperHeight')->setValue($image->CropperHeight));
         }
 
-        $this->owner->extend('updateLinkForm', $form);
+        if (!empty($this->folderName)) {
+            $originalField = $fields->fieldByName('Root.Main.Original');
+            if ($originalField) {
+                $originalField->setFolderName($this->folderName);
+            }
+        }
+
+        $fields->push(HiddenField::create('CropperRatio')->setValue($this->Ratio));
+        $fields->push(HiddenField::create('ContainerX')->setValue($image->ContainerX));
+        $fields->push(HiddenField::create('ContainerY')->setValue($image->ContainerY));
+        $fields->push(HiddenField::create('ContainerWidth')->setValue($image->ContainerWidth));
+        $fields->push(HiddenField::create('ContainerHeight')->setValue($image->ContainerHeight));
+        $fields->push(HiddenField::create('CropperX')->setValue($image->CropperX));
+        $fields->push(HiddenField::create('CropperY')->setValue($image->CropperY));
+        $fields->push(HiddenField::create('CropperWidth')->setValue($image->CropperWidth));
+        $fields->push(HiddenField::create('CropperHeight')->setValue($image->CropperHeight));
+
+        $this->extend('updateLinkForm', $form);
 
         return $form;
     }
@@ -121,9 +125,13 @@ class CroppableImageField extends FormField
      * Returns field template to update the interface
      * @return string
      **/
-    public function doSaveCroppableImage($data, $form)
+    public function doSaveCroppableImage($data, $form = null, $request = null, $handler = null)
     {
-        $link = $this->getCroppableImageObject() ? $this->getCroppableImageObject() : SaltedCroppableImage::create();
+        if (!$form instanceof Form) {
+            $form = $this->CroppableImageForm();
+        }
+
+        $link = $this->getCroppableImageObject() ?: SaltedCroppableImage::create();
         $form->saveInto($link);
         try {
             $link->write();
@@ -131,20 +139,20 @@ class CroppableImageField extends FormField
             $form->sessionMessage($e->getMessage(), 'bad');
             return $form->forTemplate();
         }
+
         $this->setValue($link->ID);
-        $this->setForm($form);
         return $this->FieldHolder();
     }
 
 
     /**
-     * Delete link action - TODO
+     * Delete link action
      *
      * @return string
      **/
-    public function doRemoveCroppableImage()
+    public function doRemoveCroppableImage($request = null)
     {
-        if ($image      =   SaltedCroppableImage::get()->byID($this->value)) {
+        if ($image = SaltedCroppableImage::get()->byID($this->value)) {
             $image->delete();
         }
 
@@ -156,18 +164,22 @@ class CroppableImageField extends FormField
     /**
      * Returns the current link object
      *
-     * @return SaltedCroppableImage
+     * @return SaltedCroppableImage|null
      **/
     public function getCroppableImageObject()
     {
-        $requestID = Controller::curr()->request->requestVar('CroppableImageID');
+        $request = $this->getRequest();
+        $requestID = $request->requestVar('SaltedCroppableImageID');
+        if ($requestID === null) {
+            $requestID = $request->requestVar('CroppableImageID');
+        }
 
         if ($requestID == '0' && !$this->Value()) {
-            return;
+            return null;
         }
 
         if (!$this->linkObject) {
-            $id = $this->Value() ? $this->Value() : $requestID;
+            $id = $this->Value() ?: $requestID;
             if ((int) $id) {
                 $this->linkObject = SaltedCroppableImage::get()->byID($id);
             }
@@ -196,7 +208,7 @@ class CroppableImageField extends FormField
     public function setIsFrontend($bool)
     {
         $this->isFrontend = $bool;
-        return $this->this;
+        return $this;
     }
 
     public function setAllowedTypes($types = array())
@@ -212,13 +224,15 @@ class CroppableImageField extends FormField
 
     public function getEditLink()
     {
-        return Controller::curr()->Link() . 'EditForm/field/' . $this->name . '/CroppableImageFormHTML?SaltedCroppableImageID=' . $this->value;
-        // https://basekit.leochen.co.nz/admin/settings/EditForm/field/LinkID/LinkFormHTML?LinkID=0
+        return Controller::join_links(
+            Controller::curr()->Link(),
+            'EditForm/field/' . $this->name . '/CroppableImageFormHTML?SaltedCroppableImageID=' . $this->value
+        );
     }
 
     public function getCroppedImage()
     {
-        if ($id =   $this->value) {
+        if ($id = $this->value) {
             return SaltedCroppableImage::get()->byID($id);
         }
 
@@ -230,7 +244,8 @@ class CroppableImageField extends FormField
         return time();
     }
 
-    public function setFolderName($folderName) {
+    public function setFolderName($folderName)
+    {
         $this->folderName = $folderName;
         return $this;
     }
